@@ -1,7 +1,9 @@
 import hashlib
 import hmac
+import json
+import mimetypes
+import os
 import requests
-from requests_toolbelt import MultipartEncoder
 
 
 class Bot:
@@ -40,9 +42,7 @@ class Bot:
     @property
     def auth(self):
         if not hasattr(self, '_auth'):
-            auth = {
-                'access_token': self.access_token
-            }
+            auth = {'access_token': self.access_token}
             if self.app_secret is not None:
                 auth['appsecret_proof'] = self.generate_appsecret_proof()
             self._auth = auth
@@ -70,9 +70,7 @@ class Bot:
 
         params.update(self.auth)
 
-        req = self._request('/%s' % user_id,
-                            verb='GET',
-                            params=params)
+        req = self._request('/%s' % user_id, verb='GET', params=params)
 
         if req.status_code == 200:
             return req.json()
@@ -122,47 +120,48 @@ class Bot:
                                     }
                                    })
 
-    # def send_audio_url(self, recipient_id, url):
-    #     return self._send_url(recipient_id, 'audio', url)
+    def send_audio_url(self, recipient_id, url):
+        return self._send_url(recipient_id, 'audio', url)
 
-    # def send_image_url(self, recipient_id, url):
-    #     return self._send_url(recipient_id, 'image', url)
+    def send_image_url(self, recipient_id, url):
+        return self._send_url(recipient_id, 'image', url)
 
-    # def send_file_url(self, recipient_id, url):
-    #     return self._send_url(recipient_id, 'file', url)
+    def send_file_url(self, recipient_id, url):
+        return self._send_url(recipient_id, 'file', url)
 
-    # def send_video_url(self, recipient_id, url):
-    #     return self._send_url(recipient_id, 'file', url)
+    def send_video_url(self, recipient_id, url):
+        return self._send_url(recipient_id, 'video', url)
 
     def _send_by_path(self, recipient_id, file_type, path):
         """
         Send file contents by path.
         """
-        # return self._request( ## what URL .. ##)
-        payload = MultipartEncoder({'recipient': {
-                    'id': recipient_id
-                },
-                'message': {
-                    'attachment': {
-                        'type': file_type,
-                        'payload': {}
-                    }
-                },
-                'filedata': (path, open(path, 'rb'))
-                })
-        header = {'Content-Type': payload.content_type}
-        return self._request('',
-                             data=payload,
-                             headers=header).json()
+        return self._request('/me/messages',
+                             data={'recipient': json.dumps({
+                                    'id': recipient_id
+                                    }),
+                                   'message': json.dumps({
+                                    'attachment': {
+                                        'type': file_type,
+                                        'payload': {}
+                                        }
+                                    })
+                                   },
+                             files={'filedata':
+                                    (os.path.basename(path),
+                                     open(path, 'rb'),
+                                     mimetypes.guess_type(path)[0])
+                                    },
+                             params=self.auth).json()
 
-    # def send_audio(self, recipient_id, path):
-    #     return self._send_by_path(recipient_id, 'audio', path)
+    def send_audio(self, recipient_id, path):
+        return self._send_by_path(recipient_id, 'audio', path)
 
-    # def send_image(self, recipient_id, path):
-    #     return self._send_by_path(recipient_id, 'image', path)
+    def send_image(self, recipient_id, path):
+        return self._send_by_path(recipient_id, 'image', path)
 
-    # def send_file(self, recipient_id, path):
-    #     return self._send_by_path(recipient_id, 'file', path)
+    def send_file(self, recipient_id, path):
+        return self._send_by_path(recipient_id, 'file', path)
 
-    # def send_video(self, recipient_id, path):
-    #     return self._send_by_path(recipient_id, 'video', path)
+    def send_video(self, recipient_id, path):
+        return self._send_by_path(recipient_id, 'video', path)
